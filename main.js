@@ -1,4 +1,3 @@
-// Importation dans un autre fichier JavaScript
 import {
     searchModuleCreation,
     answerModuleCreation
@@ -8,60 +7,57 @@ import {
 searchModuleCreation();
 answerModuleCreation();
 
-
-
-async function fetchProductData(ean13) {
-    const url = `https://big-product-data.p.rapidapi.com/gtin/${ean13}`;
-    const options = {
-        method: "GET",
-        headers: {
-            "x-rapidapi-key": "d8adeb575cmsh223da52d1ea47e2p18dc31jsned4356ee01f6",
-            "x-rapidapi-host": "big-product-data.p.rapidapi.com"
-        }
-    };
-    try {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(
-                `Erreur de requête: ${response.status} ${response.statusText}`
-            );
-        }
-        const result = await response.json();
-        console.log(result);
-
-        const brandText = ean13AnswerZone.querySelector(
-            "#ean13AnswerZone--BrandText"
-        );
-        brandText.innerHTML = ""; // Clear existing content
-        if (Array.isArray(result.properties.brand)) {
-            const brandList = document.createElement("ul");
-            result.properties.brand.forEach((brand) => {
-                const listItem = document.createElement("li");
-                listItem.innerText = brand;
-                brandList.appendChild(listItem);
-            });
-            brandText.appendChild(brandList);
-        } else {
-            brandText.innerText = result.properties.brand;
-        }
-
-        const productNameList = ean13AnswerZone.querySelector(
-            "#ean13AnswerZone--ProductNameList"
-        );
-        productNameList.innerHTML = ""; // Clear any existing list items
-        result.properties.title.forEach((item) => {
-            const listItem = document.createElement("li");
-            listItem.innerText = item;
-            productNameList.appendChild(listItem);
-        });
-    } catch (error) {
-        console.error("Erreur:", error);
-    }
-}
-
+// Constantes globales pour les éléments du DOM
+const brandText = document.querySelector("#ean13AnswerZone--BrandText");
+const productNameList = document.querySelector("#ean13AnswerZone--ProductNameList");
 const ean13SearchButton = document.querySelector("#ean13SearchButton");
 
 ean13SearchButton.addEventListener("click", () => {
     const ean13 = document.querySelector("#ean13SearchInput").value;
     fetchProductData(ean13);
 });
+
+async function fetchProductData(ean13) {
+    try {
+        const response = await fetch('./data/productsCatalog.json');
+        if (!response.ok) {
+            throw new Error(`Erreur de lecture du fichier : ${response.status} ${response.statusText}`);
+        }
+        const products = await response.json();
+        console.log(products);
+
+        const product = products.find(p => p.gtin === ean13);
+        if (!product) {
+            throw new Error(`Produit non trouvé pour EAN13: ${ean13}`);
+        }
+
+        updateBrandText(product.productBrand);
+        updateProductNameList([product.productName]);
+    } catch (error) {
+        console.error("Erreur:", error);
+    }
+}
+
+function updateBrandText(brand) {
+    brandText.innerHTML = ""; // Clear existing content
+    if (Array.isArray(brand)) {
+        const brandList = document.createElement("ul");
+        brand.forEach((brandName) => {
+            const listItem = document.createElement("li");
+            listItem.innerText = brandName;
+            brandList.appendChild(listItem);
+        });
+        brandText.appendChild(brandList);
+    } else {
+        brandText.innerText = brand || "N/A";
+    }
+}
+
+function updateProductNameList(titles) {
+    productNameList.innerHTML = ""; // Clear any existing list items
+    titles.forEach((title) => {
+        const listItem = document.createElement("li");
+        listItem.innerText = title;
+        productNameList.appendChild(listItem);
+    });
+}
